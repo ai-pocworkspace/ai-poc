@@ -1,6 +1,8 @@
 # AI POC
 
-## Install and run the python slack bolt app
+## Install and run the python slack bolt app (https://api-poc.jhnnygrn.com)
+
+This app can be managed at the following link - https://api.slack.com/apps/A05V1CYAWP8.
 
 Install the poetry python dependency manager and pyenv
 ```
@@ -29,7 +31,13 @@ cp .env.example .env # also fill out the variables
 
 Run the bolt app
 ```
-python3 app.py
+poetry run python3 app.py
+```
+
+## Install and run the cloudflare worker ai app (http://cf-worker-ai.jhnnygrn.com)
+
+```
+Add directions here ...
 ```
 
 ## Create a local tunnel to the running python slack bolt app
@@ -46,4 +54,4 @@ Point the tunnel to your local running app
 cloudflared tunnel --config .cloudflared/config.yml run ai-poc
 ```
 
-This will allow the local app to be accessible via `ai-poc.jhnnygrn.com`.
+This will allow the local runnings app to be accessible via `http://ai-poc.jhnnygrn.com` so that Slack can send messages to it.
