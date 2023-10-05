@@ -19,10 +19,6 @@ poetry install
 ```
 
 ```
-brew install python
-```
-
-```
 python3 app.py
 ```
 
