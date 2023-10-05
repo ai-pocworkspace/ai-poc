@@ -25,8 +25,6 @@ app.get('/', async (c) => {
         ? `Context:\n${notes.map(note => `- ${note}`).join("\n")}`
         : ""
 
-    const systemPrompt = ", if it is provided and relevant. ."
-
     if (!notes.length) {
         return c.json({ answer: "We don't seem to have any information about that in our systems."})
     }
