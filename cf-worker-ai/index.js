@@ -28,7 +28,7 @@ app.get('/', async (c) => {
     const systemPrompt = ", if it is provided and relevant. ."
 
     if (!notes.length) {
-        return c.json({ answer: "We don't seem to have anything information about that in our systems."})
+        return c.json({ answer: "We don't seem to have any information about that in our systems."})
     }
 
     const { response: answer } = await ai.run(
