@@ -1,6 +1,19 @@
 name = "cf-worker-ai"
-main = "src/index.js"
+main = "index.js"
 compatibility_date = "2023-10-02"
+send_metrics = false
+
+[ai]
+binding = "AI"
+
+[[vectorize]]
+binding = "VECTOR_INDEX"
+index_name = "vector-index"
+
+[[d1_databases]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "database"
+database_id = "19764baa-24dd-4380-b7da-e3c9891dbf92"
 
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Note: Use secrets to store sensitive data.
