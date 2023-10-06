@@ -31,14 +31,39 @@ cp .env.example .env # also fill out the variables
 
 Run the bolt app
 ```
-poetry run python3 app.py
+poetry run app
 ```
+
 
 ## Install and run the cloudflare worker ai app (http://cf-worker-ai.jhnnygrn.com)
 
+Install nvm and Node.js v18
 ```
-Add directions here ...
+brew install nvm
+nvm install v18
 ```
+
+Install the npm deps
+```
+cd cf-worker-ai
+npm install
+```
+
+Log in the cloudflare / wrangler
+```
+npm wrangler login
+```
+
+Run the wrangler / cloudflare worker ai app locally
+```
+npx wrangler dev --remote
+```
+
+To deploy changes to the live work
+```
+npx wrangler deploy
+```
+
 
 ## Create a local tunnel to the running python slack bolt app
 
