@@ -77,7 +77,7 @@ app.post('notes', async (c) => {
 })
 
 app.onError((err, c) => {
-    return c.text(err)
+    return c.json(err)
 })
 
 export default app
