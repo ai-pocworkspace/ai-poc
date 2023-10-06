@@ -6,10 +6,15 @@ const app = new Hono()
 app.get('ask', async (c) => {
     const ai = new Ai(c.env.AI);
     const question = c.req.query('question')
+
+    if (!question) {
+        return c.text("Missing question", 400)
+    }
+
     const embedding = await ai.run('@cf/baai/bge-base-en-v1.5', { text: question })
     const vectors = embedding.data[0]
     const SIMILARITY_CUTOFF = 0.75
-    const vectorQuery = await c.env.VECTOR_INDEX.query(vectors, { topK: 1 });
+    const vectorQuery = await c.env.VECTOR_INDEX.query(vectors, { topK: 1 })
     const vecIds = vectorQuery.matches
         .filter(vec => vec.score > SIMILARITY_CUTOFF)
         .map(vec => vec.vectorId)
@@ -41,7 +46,7 @@ app.get('ask', async (c) => {
         }
     )
 
-    return c.json({ answer, contextMessage });
+    return c.json({ answer, contextMessage })
 })
 
 app.post('embeddings', async (c) => {
@@ -63,7 +68,7 @@ app.post('embeddings', async (c) => {
     const values = data[0]
 
     if (!values) {
-        return c.text("Failed to generate vector embedding", 500);
+        return c.text("Failed to generate vector embedding", 500)
     }
 
     const { id } = record
@@ -81,9 +86,13 @@ app.delete('embeddings/:channel/:ts', async (c) => {
         return c.text("Missing required params", 400)
     }
 
-    const result = await c.env.DB.prepare("SELECT * FROM embeddings WHERE channel = ? AND ts = ?").bind(channel, ts).first()
-    await c.env.DB.prepare("DELETE FROM embeddings WHERE id = ?").bind(result.id).run()
-    await c.env.VECTOR_INDEX.deleteByIds([result.id])
+    const record = await c.env.DB.prepare("SELECT * FROM embeddings WHERE channel = ? AND ts = ?").bind(channel, ts).first()
+    if (!record) {
+        return c.text("Failed to locate embedding", 404)
+    }
+
+    await c.env.DB.prepare("DELETE FROM embeddings WHERE id = ?").bind(record.id).run()
+    await c.env.VECTOR_INDEX.deleteByIds([record.id])
 
     return c.json({})
 })
