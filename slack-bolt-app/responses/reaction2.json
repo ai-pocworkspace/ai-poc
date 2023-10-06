@@ -1,0 +1,33 @@
+{
+    "token": "gfEWZcA4JW2dF9sMIuh6md34",
+    "team_id": "T05UL418JJY",
+    "context_team_id": "T05UL418JJY",
+    "context_enterprise_id": null,
+    "api_app_id": "A05V1CYAWP8",
+    "event": {
+        "type": "reaction_added",
+        "user": "U05UY412RU2",
+        "reaction": "white_check_mark",
+        "item": {
+            "type": "message",
+            "channel": "C05UW9PKUN5",
+            "ts": "1696603055.962779"
+        },
+        "item_user": "U05UENG7K8V",
+        "event_ts": "1696620491.005000"
+    },
+    "type": "event_callback",
+    "event_id": "Ev05VC4Z7V7G",
+    "event_time": 1696620491,
+    "authorizations": [
+        {
+            "enterprise_id": null,
+            "team_id": "T05UL418JJY",
+            "user_id": "U05UY412RU2",
+            "is_bot": false,
+            "is_enterprise_install": false
+        }
+    ],
+    "is_ext_shared_channel": false,
+    "event_context": "4-eyJldCI6InJlYWN0aW9uX2FkZGVkIiwidGlkIjoiVDA1VUw0MThKSlkiLCJhaWQiOiJBMDVWMUNZQVdQOCIsImNpZCI6IkMwNVVXOVBLVU41In0"
+}

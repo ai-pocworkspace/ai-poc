@@ -3,9 +3,9 @@ import { Ai } from '@cloudflare/ai'
 import { Hono } from "hono"
 const app = new Hono()
 
-app.get('/', async (c) => {
+app.get('ask', async (c) => {
     const ai = new Ai(c.env.AI);
-    const question = c.req.query('text') || "What is the square root of 9?"
+    const question = c.req.query('question')
     const embeddings = await ai.run('@cf/baai/bge-base-en-v1.5', { text: question })
     const vectors = embeddings.data[0]
     const SIMILARITY_CUTOFF = 0.75
