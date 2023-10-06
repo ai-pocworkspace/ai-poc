@@ -6,26 +6,26 @@ const app = new Hono()
 app.get('ask', async (c) => {
     const ai = new Ai(c.env.AI);
     const question = c.req.query('question')
-    const embeddings = await ai.run('@cf/baai/bge-base-en-v1.5', { text: question })
-    const vectors = embeddings.data[0]
+    const embedding = await ai.run('@cf/baai/bge-base-en-v1.5', { text: question })
+    const vectors = embedding.data[0]
     const SIMILARITY_CUTOFF = 0.75
     const vectorQuery = await c.env.VECTOR_INDEX.query(vectors, { topK: 1 });
     const vecIds = vectorQuery.matches
         .filter(vec => vec.score > SIMILARITY_CUTOFF)
         .map(vec => vec.vectorId)
 
-    let notes = []
+    let embeddings = []
     if (vecIds.length) {
-        const query = `SELECT * FROM notes WHERE id IN (${vecIds.join(", ")})`
+        const query = `SELECT * FROM embeddings WHERE id IN (${vecIds.join(", ")})`
         const { results } = await c.env.DB.prepare(query).bind().all()
-        if (results) notes = results.map(vec => vec.text)
+        if (results) embeddings = results.map(result => result.text)
     }
 
-    const contextMessage = notes.length
-        ? `Context:\n${notes.map(note => `- ${note}`).join("\n")}`
+    const contextMessage = embeddings.length
+        ? `Context:\n${embeddings.map(embedding => `- ${embedding}`).join("\n")}`
         : ""
 
-    if (!notes.length) {
+    if (!embeddings.length) {
         return c.json({ answer: "We don't seem to have any information about that in our systems."})
     }
 
@@ -44,19 +44,19 @@ app.get('ask', async (c) => {
     return c.json({ answer, contextMessage });
 })
 
-app.post('notes', async (c) => {
+app.post('embeddings', async (c) => {
     const ai = new Ai(c.env.AI)
-    const { text } = await c.req.json()
+    const { text, channel, ts } = await c.req.json()
 
     if (!text) {
         return c.text("Missing text", 400)
     }
 
-    const { results } = await c.env.DB.prepare("INSERT INTO notes (text) VALUES (?) RETURNING *").bind(text).run()
+    const { results } = await c.env.DB.prepare("INSERT INTO embeddings (text, channel, ts) VALUES (?, ?, ?) RETURNING *").bind(text, channel || "", ts || "").run()
     const record = results.length ? results[0] : null
 
     if (!record) {
-        return c.text("Failed to create note", 500)
+        return c.text("Failed to create embedding", 500)
     }
 
     const { data } = await ai.run('@cf/baai/bge-base-en-v1.5', { text: [text] })
@@ -67,13 +67,25 @@ app.post('notes', async (c) => {
     }
 
     const { id } = record
-    const inserted = await c.env.VECTOR_INDEX.upsert([
-    {
-        id: id.toString(),
-        values
-    }])
+    const inserted = await c.env.VECTOR_INDEX.upsert([{ id: id.toString(), values }])
 
     return c.json({ id, text, inserted })
+})
+
+app.delete('embeddings/:channel/:ts', async (c) => {
+    const ai = new Ai(c.env.AI)
+    const channel = c.req.param("channel")
+    const ts = c.req.param("ts")
+
+    if (!channel || !ts) {
+        return c.text("Missing required params", 400)
+    }
+
+    const result = await c.env.DB.prepare("SELECT * FROM embeddings WHERE channel = ? AND ts = ?").bind(channel, ts).first()
+    await c.env.DB.prepare("DELETE FROM embeddings WHERE id = ?").bind(result.id).run()
+    await c.env.VECTOR_INDEX.deleteByIds([result.id])
+
+    return c.json({})
 })
 
 app.onError((err, c) => {

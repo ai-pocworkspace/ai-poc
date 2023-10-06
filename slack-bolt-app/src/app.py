@@ -9,6 +9,7 @@ load_dotenv()
 # Use the package we installed
 from slack_bolt import App
 
+WORKER_HOST = os.environ.get("WORKER_HOST")
 
 # Initializes your app with your bot token and signing secret
 app = App(
@@ -33,24 +34,30 @@ def get_question(event):
 def handle_message_events(body, say, logger):
     question = get_question(body["event"])
     logger.info(f"Question: {question}")
-    answer = httpx.get("http://localhost:8787/ask", params={"question": question}).json()["answer"]
+    answer = httpx.get(f"{WORKER_HOST}/ask", params={"question": question}).json()["answer"]
     say(answer)
 
 # reaction added to message
 @app.event("reaction_added")
-def handle_reaction_added_events(body, logger):
+def handle_reaction_added_events(body, say, logger):
     channel = body["event"]["item"]["channel"]
     ts = body["event"]["item"]["ts"]
     message = get_message(channel, ts)
-    logger.info(f"Reaction Added to: {message}")
+    response = httpx.post(f"{WORKER_HOST}/embeddings", data={"text": message, "channel": channel, "ts": ts})
+    logger.info(response)
+    logger.info(f"Reaction Added: {message}")
+    # say(f"\"{message}\" added to AI POC Embeddings")
 
 # reaction removed from message
 @app.event("reaction_removed")
-def handle_reaction_removed_events(body, logger):
+def handle_reaction_removed_events(body, say, logger):
     channel = body["event"]["item"]["channel"]
     ts = body["event"]["item"]["ts"]
     message = get_message(channel, ts)
-    logger.info(f"Reaction Removed from: {message}")
+    response = httpx.delete(f"{WORKER_HOST}:8787/embeddings/{channel}/{ts}")
+    logger.info(response)
+    logger.info(f"Reaction Removed: {message}")
+    # say(f"\"{message}\" removed from AI POC Embeddings")
 
 @app.error
 def global_error_handler(error, body, logger):
