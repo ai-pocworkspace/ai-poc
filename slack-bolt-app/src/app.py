@@ -1,72 +1,50 @@
-import os
-import httpx
-import logging
-logging.basicConfig(level=logging.INFO)
 
-from dotenv import load_dotenv
-load_dotenv()
+from .lib import env, get_question, get_message, is_im, Client
 
 # Use the package we installed
 from slack_bolt import App
 
-WORKER_HOST = os.environ.get("WORKER_HOST")
-
 # Initializes your app with your bot token and signing secret
 app = App(
-    token=os.environ.get("SLACK_BOT_TOKEN"),
-    signing_secret=os.environ.get("SLACK_SIGNING_SECRET")
+    token=env.SLACK_BOT_TOKEN,
+    signing_secret=env.SLACK_SIGNING_SECRET
 )
 
-def get_message(channel, ts):
-    result = app.client.conversations_history(
-        channel=channel,
-        inclusive=True,
-        oldest=ts,
-        limit=1
-    )
-    return result["messages"][0]["text"]
-
-def get_question(event):
-    return event["blocks"][0]["elements"][0]["elements"][0]["text"]
+client = Client()
 
 # message sent to the bot
 @app.event("message")
 def handle_message_events(body, say, logger):
-    question = get_question(body["event"])
+    if not is_im(body): return
+    question = get_question(body)
     logger.info(f"Question: {question}")
-    answer = httpx.get(f"{WORKER_HOST}/ask", params={"question": question}).json()["answer"]
+    response = client.get("/ask", params={ "question": question }).json()
+    answer = response["answer"]
     say(answer)
+    logger.info(f"Answer: {answer}")
 
 # reaction added to message
 @app.event("reaction_added")
-def handle_reaction_added_events(body, say, logger):
-    channel = body["event"]["item"]["channel"]
-    ts = body["event"]["item"]["ts"]
-    message = get_message(channel, ts)
-    response = httpx.post(f"{WORKER_HOST}/embeddings", data={"text": message, "channel": channel, "ts": ts})
-    logger.info(response)
-    logger.info(f"Reaction Added: {message}")
-    # say(f"\"{message}\" added to AI POC Embeddings")
+def handle_reaction_added_events(body, logger):
+    channel, ts, text = get_message(app, body)
+    response = client.post("/embeddings", json={ "text": text, "channel": channel, "ts": ts })
+    logger.info(str(response))
 
 # reaction removed from message
 @app.event("reaction_removed")
-def handle_reaction_removed_events(body, say, logger):
-    channel = body["event"]["item"]["channel"]
-    ts = body["event"]["item"]["ts"]
-    message = get_message(channel, ts)
-    response = httpx.delete(f"{WORKER_HOST}:8787/embeddings/{channel}/{ts}")
-    logger.info(response)
-    logger.info(f"Reaction Removed: {message}")
-    # say(f"\"{message}\" removed from AI POC Embeddings")
+def handle_reaction_removed_events(body, logger):
+    channel, ts = get_message(app, body)
+    response = client.delete(f"/embeddings/{channel}/{ts}")
+    logger.info(str(response))
 
 @app.error
 def global_error_handler(error, body, logger):
     logger.exception(error)
     logger.info(body)
 
-# Start your app
+# start your app
 def run():
-    app.start(port=int(os.environ.get("PORT", 8000)))
+    app.start(port=int(env.PORT))
 
 
 if __name__ == "__main__":
