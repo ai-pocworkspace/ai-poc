@@ -1,5 +1,5 @@
 
-from .lib import env, get_question, get_message, is_im, Client
+from .lib import env, get_question, get_message, get_file_info, is_dm, Httpx
 
 # Use the package we installed
 from slack_bolt import App
@@ -10,32 +10,50 @@ app = App(
     signing_secret=env.SLACK_SIGNING_SECRET
 )
 
-client = Client()
+httpx = Httpx()
+
 
 # message sent to the bot
 @app.event("message")
 def handle_message_events(body, say, logger):
-    if not is_im(body): return
+    if not is_dm(body): return
     question = get_question(body)
     logger.info(f"Question: {question}")
-    response = client.get("/ask", params={ "question": question }).json()
+    response = httpx.get("/ask", params={ "question": question }).json()
     answer = response["answer"]
     say(answer)
     logger.info(f"Answer: {answer}")
+    if "context" in response:
+        say(str(response["context"]))
+
 
 # reaction added to message
 @app.event("reaction_added")
-def handle_reaction_added_events(body, logger):
-    channel, ts, text = get_message(app, body)
-    response = client.post("/embeddings", json={ "text": text, "channel": channel, "ts": ts })
+def handle_reaction_added_events(body, client, logger):
+    channel, ts, text = get_message(client, body)
+    response = httpx.post("/embeddings", json={ "text": text, "channel": channel, "ts": ts })
     logger.info(str(response))
 
 # reaction removed from message
 @app.event("reaction_removed")
-def handle_reaction_removed_events(body, logger):
-    channel, ts = get_message(app, body)
-    response = client.delete(f"/embeddings/{channel}/{ts}")
+def handle_reaction_removed_events(body, client, logger):
+    channel, ts, _ = get_message(client, body)
+    response = httpx.delete(f"/embeddings/{channel}/{ts}")
     logger.info(str(response))
+
+# file created in slack
+@app.event("file_created")
+def handle_file_created_events(body, client, say, logger):
+    file_url, file_type = get_file_info(client, body)
+    if file_type == "mp3":
+        response = httpx.post("/transcribe", json={"file_url": file_url})
+        logger.info(response)
+    # elif file_type == "mp4":
+    #     # do nothing for now
+    # else:
+    #     say(f"File type not supported for {file_type} {file_url}")
+
+
 
 @app.error
 def global_error_handler(error, body, logger):
