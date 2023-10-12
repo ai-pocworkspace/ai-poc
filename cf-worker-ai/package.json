@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@cloudflare/ai": "^1.0.15",
-    "hono": "^3.7.4"
+    "cheerio": "^1.0.0-rc.12",
+    "hono": "^3.7.4",
+    "html-to-text": "^9.0.5",
+    "langchain": "^0.0.165"
   }
 }
