@@ -1,6 +1,8 @@
 
+import { Ai } from '@cloudflare/ai'
+
 export async function createEmbedding(c, text, source, channel, ts) {
-    const query = 'INSERT INTO documents (text, source, channel, ts, embedded) VALUES (?, ?, ?, ?, ?) RETURNING *'
+    const query = 'INSERT INTO documents (text, source, channel, ts) VALUES (?, ?, ?, ?) RETURNING *'
     const { results } = await c.env.DB.prepare(query).bind(text, source, channel, ts).run()
     const record = results.length ? results[0] : null
 
@@ -8,7 +10,8 @@ export async function createEmbedding(c, text, source, channel, ts) {
         throw 'Failed to create document'
     }
 
-    const embedding = await new Ai(c.env.AI).run('@cf/baai/bge-base-en-v1.5', { text: [text] })
+    const ai = new Ai(c.env.AI)
+    const embedding = await ai.run('@cf/baai/bge-base-en-v1.5', { text: [text] })
     const values = embedding.data[0]
 
     if (!values) {
@@ -33,7 +36,8 @@ export async function deleteEmbeddingByTs(c, channel, ts) {
 }
 
 export async function answerQuestion(c, question) {
-    const embedding = await new Ai(c.env.AI).run('@cf/baai/bge-base-en-v1.5', { text: question })
+    const ai = new Ai(c.env.AI)
+    const embedding = await ai.run('@cf/baai/bge-base-en-v1.5', { text: question })
     const values = embedding.data[0]
     const vectorQuery = await c.env.VECTOR_INDEX.query(values, { topK: 20 })
     const vectorMatches = vectorQuery.matches;
@@ -53,16 +57,13 @@ export async function answerQuestion(c, question) {
             ? `${vectorMatches.length} vectors found with scores ${vectorMatches.map(vector => vector.score).join(', ')}.`
             : '0 vectors found.'
 
-        return c.json({
-            answer: `We don\'t seem to have any information about that in our systems. ${vectorMessage}`,
-            context: '',
-            vectorMatches
-        })
+        const answer = `We don\'t seem to have any information about that in our systems. ${vectorMessage}`
+        const context = ''
+
+        return { answer, context, vectorMatches }
     }
 
-    const context = documents.length
-        ? `Context:\n${documents.map(text => `- ${text}`).join('\n')}`
-        : ''
+    const context = `Context:\n${documents.map(text => `- ${text}`).join('\n')}`
 
     const { response: answer } = await ai.run(
         '@cf/meta/llama-2-7b-chat-int8',

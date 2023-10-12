@@ -1,11 +1,11 @@
 
 import { Hono } from 'hono'
 
-import { CloudflareVectorizeStore } from 'langchain/vectorstores/cloudflare_vectorize'
-import { CloudflareWorkersAIEmbeddings } from 'langchain/embeddings/cloudflare_workersai'
-
-import { urlLoader } from './loaders'
 import { createEmbedding, deleteEmbeddingByTs, answerQuestion } from './actions'
+
+// import { CloudflareVectorizeStore } from 'langchain/vectorstores/cloudflare_vectorize'
+// import { CloudflareWorkersAIEmbeddings } from 'langchain/embeddings/cloudflare_workersai'
+// import { urlLoader } from './loaders'
 
 const app = new Hono()
 
@@ -16,12 +16,8 @@ app.get('ask', async (c) => {
         return c.json({ error: 'Validation Error: missing required params' }, 400)
     }
 
-    try {
-        const { answer, context, vectorMatches } = answerQuestion(c, question)
-        return c.json({ answer, context, vectorMatches })
-    } catch (e) {
-        return c.json({ error: `Error: ${e.message}` }, 500)
-    }
+    const { answer, context, vectorMatches } = await answerQuestion(c, question)
+    return c.json({ answer, context, vectorMatches })
 })
 
 app.post('embeddings', async (c) => {
@@ -31,12 +27,8 @@ app.post('embeddings', async (c) => {
         return c.json({ error: 'Validation Error: missing required params' }, 400)
     }
 
-    try {
-        const embedding = createEmbedding(c, text, source || '', channel || '', ts || '')
-        return c.json({ embedding })
-    } catch (e) {
-        return c.json({ error: `Error: ${e.message}` }, 500)
-    }
+    const embedding = await createEmbedding(c, text, source || '', channel || '', ts || '')
+    return c.json({ embedding })
 })
 
 app.delete('embeddings/:channel/:ts', async (c) => {
@@ -47,12 +39,8 @@ app.delete('embeddings/:channel/:ts', async (c) => {
         return c.json({ error: 'Validation Error: missing required params' }, 400)
     }
 
-    try {
-        deleteEmbeddingByTs(channel, ts)
-        return c.json({})
-    } catch (e) {
-        return c.json({ error: `Error: ${e.message}` }, 500)
-    }
+    await deleteEmbeddingByTs(c, channel, ts)
+    return c.json({})
 })
 
 // app.post('transcribe', async (c) => {
@@ -111,7 +99,8 @@ app.delete('embeddings/:channel/:ts', async (c) => {
 // })
 
 app.onError((e, c) => {
-    return c.json({error: e.message}, 500)
+    console.log(e)
+    return c.json({ error: e }, 500)
 })
 
 export default app

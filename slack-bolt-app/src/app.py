@@ -20,12 +20,13 @@ def handle_message_events(body, say, logger):
     question = get_question(body)
     logger.info(f"Question: {question}")
     response = httpx.get("/ask", params={ "question": question }).json()
+
     if "answer" in response:
         answer = response["answer"]
+        context = response["context"]
+        vectorMatches = response["vectorMatches"]
         say(answer)
-        logger.info(f"Answer: {answer}")
-    if "context" in response: say(str(response["context"]))
-    if "vectorMatches" in response: say(str(response["vectorMatches"]))
+        logger.info(f"Answer: {answer}\nContext: {str(context)}\nVector Matches: {str(vectorMatches)}")
 
 
 # reaction added to message
