@@ -33,7 +33,7 @@ def handle_message_events(body, say, logger):
 @app.event("reaction_added")
 def handle_reaction_added_events(body, client, logger):
     channel, ts, text = get_message(client, body)
-    response = httpx.post("/embeddings", json={ "text": text, "channel": channel, "ts": ts })
+    response = httpx.post("/embeddings", json={ "text": text, "source": "slack", "channel": channel, "ts": ts })
     logger.info(str(response))
 
 # reaction removed from message

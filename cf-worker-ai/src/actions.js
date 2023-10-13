@@ -1,54 +1,78 @@
 
 import { Ai } from '@cloudflare/ai'
+import { ResourceNotFoundError, env } from './util'
 
-export async function createEmbedding(c, text, source, channel, ts) {
+// import { CloudflareVectorizeStore } from 'langchain/vectorstores/cloudflare_vectorize'
+// import { CloudflareWorkersAIEmbeddings } from 'langchain/embeddings/cloudflare_workersai'
+
+export async function createEmbedding(text) {
+    const ai = new Ai(env().AI)
+    const embedding = await ai.run('@cf/baai/bge-base-en-v1.5', { text: [text] })
+    return embedding
+}
+
+export async function insertVector(document, embedding) {
+    const values = embedding.data[0]
+    const { ids } = await env().VECTOR_INDEX.upsert([{ id: document.id.toString(), values }])
+    await env().DB.prepare(`UPDATE documents SET embedded = 1 WHERE id IN (${ids.join(', ')})`).run()
+}
+
+export async function stuffDocuments(documents) {
+    let ids = []
+    console.log(`DOC LENGTH: ${documents.length}`)
+    for (document in documents) {
+        console.log(document)
+        // const { document: id } = createDocumentAndEmbedding(document.)
+        // ids.push(id)
+    }
+    return ids.length > 0
+}
+
+export async function createDocumentAndEmbedding(text, source, channel, ts) {
     const query = 'INSERT INTO documents (text, source, channel, ts) VALUES (?, ?, ?, ?) RETURNING *'
-    const { results } = await c.env.DB.prepare(query).bind(text, source, channel, ts).run()
-    const record = results.length ? results[0] : null
+    const { results } = await env().DB.prepare(query).bind(text, source, channel, ts).run()
+    const document = results.length ? results[0] : null
 
-    if (!record) {
+    if (!document) {
         throw 'Failed to create document'
     }
 
-    const ai = new Ai(c.env.AI)
-    const embedding = await ai.run('@cf/baai/bge-base-en-v1.5', { text: [text] })
-    const values = embedding.data[0]
+    const embedding = await createEmbedding(text)
 
-    if (!values) {
+    if (!embedding) {
         throw 'Failed to generate vector embedding'
     }
 
-    const inserted = await c.env.VECTOR_INDEX.upsert([{ id: record.id.toString(), values }])
+    await insertVector(document, embedding)
 
-    return inserted
+    return { document, embedding }
 }
 
-export async function deleteEmbeddingByTs(c, channel, ts) {
-    const record = await c.env.DB.prepare('SELECT * FROM documents WHERE channel = ? AND ts = ?').bind(channel, ts).first()
+export async function deleteDocumentAndEmbeddingByTs(channel, ts) {
+    const document = await env().DB.prepare('SELECT * FROM documents WHERE channel = ? AND ts = ?').bind(channel, ts).first()
 
-    if (!record) {
-        throw 'Failed to locate embedding'
+    if (!document) {
+        throw new ResourceNotFoundError('failed to locate embedding')
     }
 
-    await c.env.DB.prepare('DELETE FROM documents WHERE id = ?').bind(record.id).run()
-    await c.env.VECTOR_INDEX.deleteByIds([record.id])
+    await env().DB.prepare('DELETE FROM documents WHERE id = ?').bind(document.id).run()
+    await env().VECTOR_INDEX.deleteByIds([document.id])
     return true
 }
 
-export async function answerQuestion(c, question) {
-    const ai = new Ai(c.env.AI)
-    const embedding = await ai.run('@cf/baai/bge-base-en-v1.5', { text: question })
+export async function answerQuestion(question) {
+    const embedding = await createEmbedding(question)
     const values = embedding.data[0]
-    const vectorQuery = await c.env.VECTOR_INDEX.query(values, { topK: 20 })
-    const vectorMatches = vectorQuery.matches;
-    const SIMILARITY_CUTOFF = 0.5
+    const vectorQuery = await env().VECTOR_INDEX.query(values, { topK: 20 })
+    const vectorMatches = vectorQuery.matches
+    const SIMILARITY_CUTOFF = 0.75
     const vectorIds = vectorMatches
         .filter(vector => vector.score > SIMILARITY_CUTOFF)
         .map(vector => vector.vectorId)
 
     let documents = []
     if (vectorIds.length) {
-        const { results } = await c.env.DB.prepare(`SELECT * FROM documents WHERE id IN (${vectorIds.join(', ')})`).bind().all()
+        const { results } = await env().DB.prepare(`SELECT * FROM documents WHERE id IN (${vectorIds.join(', ')})`).bind().all()
         if (results) documents = results.map(result => result.text)
     }
 
@@ -65,6 +89,7 @@ export async function answerQuestion(c, question) {
 
     const context = `Context:\n${documents.map(text => `- ${text}`).join('\n')}`
 
+    const ai = new Ai(env().AI)
     const { response: answer } = await ai.run(
         '@cf/meta/llama-2-7b-chat-int8',
         {
