@@ -27,6 +27,8 @@ def handle_message_events(body, say, logger):
         vectorMatches = response["vectorMatches"]
         say(answer)
         logger.info(f"Answer: {answer}\nContext: {str(context)}\nVector Matches: {str(vectorMatches)}")
+    else:
+        say("Whoops! We didn't seem to get a timely response from the AI POC Bot.")
 
 
 # reaction added to message

@@ -49,7 +49,7 @@ app.get('loader', async (c) => {
 
     return c.json({
         message: documents.length
-            ? stuffDocuments(documents) && `${documents.length} documents embedded`
+            ? await stuffDocuments(documents) && `${documents.length} documents embedded`
             : 'No documents were embedded.'
     })
 })

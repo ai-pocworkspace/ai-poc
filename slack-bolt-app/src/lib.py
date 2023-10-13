@@ -18,7 +18,8 @@ env.SLACK_USER_TOKEN = os.environ.get("SLACK_USER_TOKEN")
 env.SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 
 def Httpx():
-    return httpx.Client(base_url=env.WORKER_HOST, timeout=5)
+    timeout = httpx.Timeout(10.0, read=10.0)
+    return httpx.Client(base_url=env.WORKER_HOST, timeout=timeout)
 
 def get_question(body):
     return _.get(body, "event.blocks.0.elements.0.elements.0.text", default="")

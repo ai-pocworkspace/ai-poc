@@ -17,18 +17,18 @@ export async function insertVector(document, embedding) {
     await env().DB.prepare(`UPDATE documents SET embedded = 1 WHERE id IN (${ids.join(', ')})`).run()
 }
 
-export async function stuffDocuments(documents) {
+export async function stuffDocuments(documents, source = null) {
     let ids = []
-    console.log(`DOC LENGTH: ${documents.length}`)
-    for (document in documents) {
-        console.log(document)
-        // const { document: id } = createDocumentAndEmbedding(document.)
-        // ids.push(id)
+
+    for (let document of documents) {
+        const { document: id } = await createDocumentAndEmbedding(document.pageContent, source)
+        ids.push(id)
     }
+
     return ids.length > 0
 }
 
-export async function createDocumentAndEmbedding(text, source, channel, ts) {
+export async function createDocumentAndEmbedding(text, source = null, channel = null, ts = null) {
     const query = 'INSERT INTO documents (text, source, channel, ts) VALUES (?, ?, ?, ?) RETURNING *'
     const { results } = await env().DB.prepare(query).bind(text, source, channel, ts).run()
     const document = results.length ? results[0] : null
@@ -78,10 +78,10 @@ export async function answerQuestion(question) {
 
     if (!documents.length) {
         let vectorMessage = vectorMatches.length
-            ? `${vectorMatches.length} vectors found with scores ${vectorMatches.map(vector => vector.score).join(', ')}.`
+            ? `${vectorMatches.length} vectors found with a score of ${Math.floor(vectorMatches.map(vector => vector.score).shift() * 100)}% or lower. The cutoff is ${SIMILARITY_CUTOFF * 100}%.`
             : '0 vectors found.'
 
-        const answer = `We don\'t seem to have any information about that in our systems. ${vectorMessage}`
+        const answer = `We don\'t seem to have any information about that in our knowledgebase. ${vectorMessage}`
         const context = ''
 
         return { answer, context, vectorMatches }
