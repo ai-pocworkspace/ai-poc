@@ -14,7 +14,7 @@ export async function createEmbedding(text) {
 export async function insertVector(document, embedding) {
     const values = embedding.data[0]
     const { ids } = await env().VECTOR_INDEX.upsert([{ id: document.id.toString(), values }])
-    await env().DB.prepare(`UPDATE documents SET embedded = 1 WHERE id IN (${ids.join(', ')})`).run()
+    return ids
 }
 
 export async function stuffDocuments(documents, source = null) {
@@ -43,7 +43,9 @@ export async function createDocumentAndEmbedding(text, source = null, channel = 
         throw 'Failed to generate vector embedding'
     }
 
-    await insertVector(document, embedding)
+    const ids = await insertVector(document, embedding)
+
+    await env().DB.prepare(`UPDATE documents SET embedded = 1 WHERE id IN (${ids.join(', ')})`).run()
 
     return { document, embedding }
 }

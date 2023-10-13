@@ -18,7 +18,7 @@ export function useEnv() {
 
 export class ValidationError extends Error {
     constructor(message) {
-        super(`Validation Error: ${message}` || 'Validation Error: missing required params')
+        super(message && `Validation Error: ${message}` || 'Validation Error: missing required params')
         this.code = 400
     }
 }
