@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "start": "wrangler dev"
+    "start": "wrangler dev --remote",
+    "reset-db": "wrangler d1 execute database --command \"DELETE FROM documents\" && wrangler vectorize delete vector-index && wrangler vectorize create vector-index --metric=cosine --dimensions=768",
+    "tail": "wrangler tail --format=pretty"
   },
   "devDependencies": {
     "wrangler": "^3.0.0"
