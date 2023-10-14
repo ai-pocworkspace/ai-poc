@@ -1,6 +1,8 @@
 # AI POC
 
-## Install and run the python slack bolt app (https://api-poc.jhnnygrn.com)
+![alt text](https://github.com/ai-pocworkspace/ai-poc/blob/main/diagram.png?raw=true)
+
+## Install and run the python slack bolt app (https://ai-poc.jhnnygrn.com)
 
 This app can be managed at the following link - https://api.slack.com/apps/A05V1CYAWP8.
 
@@ -51,7 +53,7 @@ npm install
 
 Log in the cloudflare / wrangler
 ```
-npm wrangler login
+npx wrangler login
 ```
 
 Run the wrangler / cloudflare worker ai app locally
@@ -78,5 +80,6 @@ Point the tunnel to your local running app
 ```
 cloudflared tunnel --config .cloudflared/config.yml run ai-poc
 ```
+
 
 This will allow the local runnings app to be accessible via `http://ai-poc.jhnnygrn.com` so that Slack can send messages to it.
