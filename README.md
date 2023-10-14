@@ -37,7 +37,7 @@ poetry run app
 ```
 
 
-## Install and run the cloudflare worker ai app (http://cf-worker-ai.jhnnygrn.com)
+## Install and run the cloudflare worker ai app (https://cf-worker-ai.jhnnygrn.com)
 
 Install nvm and Node.js v18
 ```
@@ -82,4 +82,4 @@ cloudflared tunnel --config .cloudflared/config.yml run ai-poc
 ```
 
 
-This will allow the local runnings app to be accessible via `http://ai-poc.jhnnygrn.com` so that Slack can send messages to it.
+This will allow the local runnings app to be accessible via `https://ai-poc.jhnnygrn.com` so that Slack can send messages to it.
