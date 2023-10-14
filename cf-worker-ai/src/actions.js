@@ -79,7 +79,7 @@ export async function answerQuestion(question) {
     let documents = []
     if (vectorIds.length) {
         const { results } = await env().DB.prepare(`SELECT * FROM documents WHERE id IN (${vectorIds.join(', ')})`).bind().all()
-        if (results.length) documents = results.map(result => result.text)
+        if (results.length) documents = results
     }
 
     if (!documents.length) {
@@ -88,12 +88,13 @@ export async function answerQuestion(question) {
             : '0 vectors found.'
 
         const answer = `We don\'t seem to have any information about that in our knowledgebase. ${vectorMessage}`
+        const metadata = {}
         const context = ''
 
-        return { answer, context, vectorMatches }
+        return { answer, metadata, context, vectorMatches }
     }
 
-    const context = `Context:\n${documents.map(text => `- ${text}`).join('\n')}`
+    const context = `Context:\n${documents.map(document => `- ${document.text}`).join('\n')}`
 
     const ai = new Ai(env().AI)
     const { response: answer } = await ai.run(
@@ -108,5 +109,11 @@ export async function answerQuestion(question) {
         }
     )
 
-    return { answer, context, vectorMatches }
+    const metadata = {
+        sources: [...new Set(documents.map(document => {
+            return JSON.parse(document?.metadata)?.source
+        }))]
+    }
+
+    return { answer, metadata, context, vectorMatches }
 }

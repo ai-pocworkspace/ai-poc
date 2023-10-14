@@ -16,8 +16,8 @@ app.use('*', useEnv())
 app.get('ask', async (c) => {
     const { question } = c.req.query()
     if (!question) throw new ValidationError
-    const { answer, context, vectorMatches } = await answerQuestion(question)
-    return c.json({ answer, context, vectorMatches })
+    const { answer, metadata, context, vectorMatches } = await answerQuestion(question)
+    return c.json({ answer, metadata, context, vectorMatches })
 })
 
 app.post('embeddings', async (c) => {

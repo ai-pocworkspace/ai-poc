@@ -1,5 +1,5 @@
 
-from .lib import env, get_question, get_message, get_file_info, is_dm, Httpx
+from .lib import env, get_question, get_message, build_answer, get_file_info, is_dm, Httpx
 
 # Use the package we installed
 from slack_bolt import App
@@ -22,11 +22,12 @@ def handle_message_events(body, say, logger):
     response = httpx.get("/ask", params={ "question": question }).json()
 
     if "answer" in response:
-        answer = response["answer"]
-        context = response["context"]
-        vectorMatches = response["vectorMatches"]
-        say(answer)
+        answer, source, context, vectorMatches = build_answer(response)
+        say(f"{answer}{source}")
         logger.info(f"Answer: {answer}\nContext: {str(context)}\nVector Matches: {str(vectorMatches)}")
+    elif "error" in response:
+        error = response["error"]
+        say(f"An error occurred! {str(error)}")
     else:
         say("Whoops! We didn't seem to get a timely response from the AI POC Bot.")
 

@@ -1,7 +1,7 @@
 
 import os
 import httpx
-import ffmpeg
+# import ffmpeg
 import pydash as _
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -36,6 +36,15 @@ def get_message(client, body):
     text = _.get(response, "messages.0.text", default="")
 
     return ( channel, ts, text )
+
+def build_answer(response):
+    answer = response["answer"]
+    sources = _.get(response, "metadata.sources", [])
+    context = response["context"]
+    vectorMatches = response["vectorMatches"]
+    source = "\nSource:\n" + "\n".join(sources) if len(sources) else ""
+
+    return ( answer, source, context, vectorMatches )
 
 def get_file_info(client, body):
     file_id = _.get(body, "event.file_id")
