@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import {
     answerQuestion,
     createDocumentAndEmbedding,
-    deleteDocumentAndEmbeddingByTs,
+    deleteDocumentAndEmbeddingByExternalId,
     stuffDocuments
 } from './actions'
 import { urlLoader } from './loaders'
@@ -21,16 +21,16 @@ app.get('ask', async (c) => {
 })
 
 app.post('embeddings', async (c) => {
-    const { text, source, channel, ts } = await c.req.json()
-    if (!text) throw new ValidationError
-    const { document, embedding } = await createDocumentAndEmbedding(text, source || '', channel || '', ts || '')
+    const { external_id, text, source } = await c.req.json()
+    if (!external_id || !text) throw new ValidationError
+    const { document, embedding } = await createDocumentAndEmbedding(external_id, text, source || '')
     return c.json({ document, embedding })
 })
 
-app.delete('embeddings/:channel/:ts', async (c) => {
-    const { channel, ts } = c.req.param()
-    if (!channel || !ts) throw new ValidationError
-    await deleteDocumentAndEmbeddingByTs(channel, ts)
+app.delete('embeddings/:external_id', async (c) => {
+    const { external_id } = c.req.param()
+    if (!external_id) throw new ValidationError
+    await deleteDocumentAndEmbeddingByExternalId(external_id)
     return c.json({})
 })
 

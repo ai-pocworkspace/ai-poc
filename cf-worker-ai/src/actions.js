@@ -28,9 +28,9 @@ export async function stuffDocuments(documents, source = null) {
     return ids.length > 0
 }
 
-export async function createDocumentAndEmbedding(text, source = null, channel = null, ts = null) {
-    const query = 'INSERT INTO documents (text, source, channel, ts) VALUES (?, ?, ?, ?) RETURNING *'
-    const { results } = await env().DB.prepare(query).bind(text, source, channel, ts).run()
+export async function createDocumentAndEmbedding(external_id, text, source = null, metadata = {}) {
+    const query = 'INSERT INTO documents (external_id, text, source, metadata, embedded) VALUES (?, ?, ?, ?, ?) RETURNING *'
+    const { results } = await env().DB.prepare(query).bind(external_id, text, source, JSON.stringify(metadata), 0).run()
     const document = results.length ? results[0] : null
 
     if (!document) {
@@ -50,8 +50,8 @@ export async function createDocumentAndEmbedding(text, source = null, channel = 
     return { document, embedding }
 }
 
-export async function deleteDocumentAndEmbeddingByTs(channel, ts) {
-    const document = await env().DB.prepare('SELECT * FROM documents WHERE channel = ? AND ts = ?').bind(channel, ts).first()
+export async function deleteDocumentAndEmbeddingByExternalId(external_id) {
+    const document = await env().DB.prepare('SELECT * FROM documents WHERE external_id = ?').bind(external_id).first()
 
     if (!document) {
         throw new ResourceNotFoundError('failed to locate embedding')

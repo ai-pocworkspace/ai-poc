@@ -35,29 +35,27 @@ def handle_message_events(body, say, logger):
 @app.event("reaction_added")
 def handle_reaction_added_events(body, client, logger):
     channel, ts, text = get_message(client, body)
-    response = httpx.post("/embeddings", json={ "text": text, "source": "slack", "channel": channel, "ts": ts })
+    response = httpx.post("/embeddings", json={"external_id": f"{channel}:{ts}", "text": text, "source": "slack" })
     logger.info(str(response))
 
 # reaction removed from message
 @app.event("reaction_removed")
 def handle_reaction_removed_events(body, client, logger):
     channel, ts, _ = get_message(client, body)
-    response = httpx.delete(f"/embeddings/{channel}/{ts}")
+    response = httpx.delete(f"/embeddings/{channel}:{ts}")
     logger.info(str(response))
 
 # file created in slack
-@app.event("file_created")
-def handle_file_created_events(body, client, say, logger):
-    file_url, file_type = get_file_info(client, body)
-    if file_type == "mp3":
-        response = httpx.post("/transcribe", json={"file_url": file_url})
-        logger.info(response)
-    # elif file_type == "mp4":
-    #     # do nothing for now
-    # else:
-    #     say(f"File type not supported for {file_type} {file_url}")
-
-
+# @app.event("file_created")
+# def handle_file_created_events(body, client, say, logger):
+#     file_url, file_type = get_file_info(client, body)
+#     if file_type == "mp3":
+#         response = httpx.post("/transcribe", json={"file_url": file_url})
+#         logger.info(response)
+#     # elif file_type == "mp4":
+#     #     # do nothing for now
+#     # else:
+#     #     say(f"File type not supported for {file_type} {file_url}")
 
 @app.error
 def global_error_handler(error, body, logger):

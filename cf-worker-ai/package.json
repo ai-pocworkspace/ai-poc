@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "start": "wrangler dev --remote",
-    "reset-db": "wrangler d1 execute database --command \"DELETE FROM documents\" && wrangler vectorize delete vector-index && wrangler vectorize create vector-index --metric=cosine --dimensions=768",
+    "dev": "wrangler dev --remote",
     "tail": "wrangler tail --format=pretty",
-    "tunnel": "cloudflared tunnel --config .cloudflared/config.yml run ai-poc"
+    "tunnel": "cloudflared tunnel --config ../.cloudflared/config.yml run ai-poc",
+    "db:migrate": "wrangler d1 execute database --command \"CREATE TABLE IF NOT EXISTS documents (id INTEGER PRIMARY KEY, external_id VARCHAR, text TEXT NOT NULL, source VARCAR, metadata TEXT, embedded BOOL)\"",
+    "db:reset": "wrangler d1 execute database --command \"DELETE FROM documents\" && wrangler vectorize delete vector-index && wrangler vectorize create vector-index --metric=cosine --dimensions=768",
+    "db:command": "wrangler d1 execute database --command"
   },
   "devDependencies": {
     "wrangler": "^3.0.0"
