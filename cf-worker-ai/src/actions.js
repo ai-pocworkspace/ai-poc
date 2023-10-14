@@ -21,7 +21,9 @@ export async function stuffDocuments(documents, source = null) {
     let ids = []
 
     for (let document of documents) {
-        const { document: id } = await createDocumentAndEmbedding(document.pageContent, source)
+        const external_id = btoa(document.metadata.source)
+        const text = document.pageContent
+        const { document: id } = await createDocumentAndEmbedding(external_id, text, source)
         ids.push(id)
     }
 
