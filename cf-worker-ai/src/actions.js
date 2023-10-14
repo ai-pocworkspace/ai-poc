@@ -23,7 +23,8 @@ export async function stuffDocuments(documents, source = null) {
     for (let document of documents) {
         const external_id = btoa(document.metadata.source)
         const text = document.pageContent
-        const { document: id } = await createDocumentAndEmbedding(external_id, text, source)
+        const metadata = document.metadata
+        const { document: id } = await createDocumentAndEmbedding(external_id, text, source, metadata)
         ids.push(id)
     }
 
@@ -53,14 +54,15 @@ export async function createDocumentAndEmbedding(external_id, text, source = nul
 }
 
 export async function deleteDocumentAndEmbeddingByExternalId(external_id) {
-    const document = await env().DB.prepare('SELECT * FROM documents WHERE external_id = ?').bind(external_id).first()
+    const { results } = await env().DB.prepare('SELECT * FROM documents WHERE external_id = ?').bind(external_id).all()
 
-    if (!document) {
+    if (!results.length) {
         throw new ResourceNotFoundError('failed to locate embedding')
     }
 
-    await env().DB.prepare('DELETE FROM documents WHERE id = ?').bind(document.id).run()
-    await env().VECTOR_INDEX.deleteByIds([document.id])
+    const ids = results.map(result => result.id)
+    await env().DB.prepare(`DELETE FROM documents WHERE id IN (${ids.join(', ')})`).bind().run()
+    await env().VECTOR_INDEX.deleteByIds(ids)
     return true
 }
 
@@ -77,7 +79,7 @@ export async function answerQuestion(question) {
     let documents = []
     if (vectorIds.length) {
         const { results } = await env().DB.prepare(`SELECT * FROM documents WHERE id IN (${vectorIds.join(', ')})`).bind().all()
-        if (results) documents = results.map(result => result.text)
+        if (results.length) documents = results.map(result => result.text)
     }
 
     if (!documents.length) {
