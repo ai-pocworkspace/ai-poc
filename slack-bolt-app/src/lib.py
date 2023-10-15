@@ -1,14 +1,14 @@
 
-import os
-import httpx
 # import ffmpeg
+import base64, httpx, os
 import pydash as _
+from types import SimpleNamespace
+from pprint import pprint
 import logging
 logging.basicConfig(level=logging.INFO)
 from dotenv import load_dotenv
 load_dotenv()
 
-from types import SimpleNamespace
 
 env = SimpleNamespace()
 env.PORT = os.environ.get("PORT", 8000)
@@ -36,6 +36,11 @@ def get_message(client, body):
     text = _.get(response, "messages.0.text", default="")
 
     return ( channel, ts, text )
+
+def get_url_from_message(message):
+    url = _.get(message, "blocks.0.elements.0.elements.1.url")
+    base64_url = base64.b64encode(url.encode("ascii")).decode("ascii")
+    return (url, base64_url)
 
 def build_answer(client, question, response):
     blocks = []

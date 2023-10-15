@@ -1,5 +1,5 @@
 
-from .lib import env, get_question, get_message, build_answer, get_file_info, is_dm, Httpx
+from .lib import env, get_question, get_message, build_answer, get_url_from_message, get_file_info, is_dm, Httpx
 
 # Use the package we installed
 from slack_bolt import App
@@ -12,6 +12,29 @@ app = App(
 
 httpx = Httpx()
 
+@app.message("Add Website:")
+def handle_add_website(message, client, say, logger):
+    url, _ = get_url_from_message(message)
+    response = httpx.get("/loader", params={ "type": "url", "value": url })
+    logger.info(str(response))
+    if response.status_code != 200:
+        say("Error occured while trying to add the website to the knowledgebase.")
+    else:
+        response = response.json()
+        message = response["message"]
+        say(f"Website added to the knowledgebase. {message}")
+
+@app.message("Remove Website:")
+def handle_remove_website(message, say, logger):
+    _, base64_url = get_url_from_message(message)
+    response = httpx.delete(f"/embeddings/{base64_url}")
+    logger.info(str(response))
+    if response.status_code == 404:
+        say(f"Website not found in knowledgebase.")
+    elif response.status_code != 200:
+        say("Error occured while trying to remove the website from the knowledgebase.")
+    else:
+        say(f"Website removed from the knowledgebase.")
 
 # message sent to the bot
 @app.event("message")
@@ -19,8 +42,9 @@ def handle_message_events(body, client, say, logger):
     if not is_dm(body): return
     question = get_question(body)
     logger.info(f"Question: {question}")
-    response = httpx.get("/ask", params={ "question": question }).json()
-
+    response = httpx.get("/ask", params={ "question": question })
+    logger.info(str(response))
+    response = response.json()
     if "answer" in response:
         text, blocks = build_answer(client, question, response)
         say(text=text, blocks=blocks)
@@ -34,6 +58,23 @@ def handle_message_events(body, client, say, logger):
     else:
         say("Whoops! We didn't seem to get a timely response from the AI POC Bot.")
 
+# upvote answer
+@app.action({
+    "block_id": "feedback",
+    "action_id": "feedback_positive"
+})
+def update_message(ack, say):
+    ack()
+    say("Thanks for your feedback!")
+
+# downvote answer
+@app.action({
+    "block_id": "feedback",
+    "action_id": "feedback_negative"
+})
+def update_message(ack, say):
+    ack()
+    say("Thanks for your feedback!")
 
 # reaction added to message
 @app.event("reaction_added")
@@ -49,23 +90,6 @@ def handle_reaction_removed_events(body, client, logger):
     channel, ts, _ = get_message(client, body)
     response = httpx.delete(f"/embeddings/{channel}:{ts}")
     logger.info(str(response))
-
-
-
-# upvote answer
-@app.action({
-    "block_id": "feedback",
-    "action_id": "feedback_positive"
-})
-def update_message(ack, say):
-    ack()
-    say("Thanks for your feedback!")
-
-# downvote answer
-@app.action("feedback_negative")
-def update_message(ack, say):
-    ack()
-    say("Thanks for your feedback!")
 
 # file created in slack
 # @app.event("file_created")
