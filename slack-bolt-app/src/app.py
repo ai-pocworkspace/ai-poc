@@ -15,16 +15,19 @@ httpx = Httpx()
 
 # message sent to the bot
 @app.event("message")
-def handle_message_events(body, say, logger):
+def handle_message_events(body, client, say, logger):
     if not is_dm(body): return
     question = get_question(body)
     logger.info(f"Question: {question}")
     response = httpx.get("/ask", params={ "question": question }).json()
 
     if "answer" in response:
-        answer, source, context, vectorMatches = build_answer(response)
-        say(f"{answer}{source}")
-        logger.info(f"Answer: {answer}\nContext: {str(context)}\nVector Matches: {str(vectorMatches)}")
+        text, blocks = build_answer(client, question, response)
+        say(text=text, blocks=blocks)
+        logger.info(f"Answer: {text}")
+        # context = response["context"]
+        # vectorMatches = response["vectorMatches"]
+        # logger.info(f"Answer: {answer}\nContext: {str(context)}\nVector Matches: {str(vectorMatches)}")
     elif "error" in response:
         error = response["error"]
         say(f"An error occurred! {str(error)}")
@@ -36,7 +39,8 @@ def handle_message_events(body, say, logger):
 @app.event("reaction_added")
 def handle_reaction_added_events(body, client, logger):
     channel, ts, text = get_message(client, body)
-    response = httpx.post("/embeddings", json={"external_id": f"{channel}:{ts}", "text": text, "source": "slack" })
+    metadata = { "channel": channel, "ts" : ts }
+    response = httpx.post("/embeddings", json={ "external_id": f"{channel}:{ts}", "text": text, "source": "slack", "metadata": metadata })
     logger.info(str(response))
 
 # reaction removed from message
@@ -45,6 +49,23 @@ def handle_reaction_removed_events(body, client, logger):
     channel, ts, _ = get_message(client, body)
     response = httpx.delete(f"/embeddings/{channel}:{ts}")
     logger.info(str(response))
+
+
+
+# upvote answer
+@app.action({
+    "block_id": "feedback",
+    "action_id": "feedback_positive"
+})
+def update_message(ack, say):
+    ack()
+    say("Thanks for your feedback!")
+
+# downvote answer
+@app.action("feedback_negative")
+def update_message(ack, say):
+    ack()
+    say("Thanks for your feedback!")
 
 # file created in slack
 # @app.event("file_created")

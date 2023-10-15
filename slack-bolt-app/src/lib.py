@@ -37,14 +37,116 @@ def get_message(client, body):
 
     return ( channel, ts, text )
 
-def build_answer(response):
-    answer = response["answer"]
-    sources = _.get(response, "metadata.sources", [])
-    context = response["context"]
-    vectorMatches = response["vectorMatches"]
-    source = "\nSource:\n" + "\n".join(sources) if len(sources) else ""
+def build_answer(client, question, response):
+    blocks = []
+    text = response["answer"]
 
-    return ( answer, source, context, vectorMatches )
+    question_header = {
+        "type": "header",
+        "text": {
+            "type": "plain_text",
+            "text": "Question"
+        }
+    }
+    blocks.append(question_header)
+
+    question = {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": question
+        }
+    }
+    blocks.append(question)
+
+    answer_header = {
+        "type": "header",
+        "text": {
+            "type": "plain_text",
+            "text": "Answer"
+        }
+    }
+    blocks.append(answer_header)
+
+    answer = {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": text
+        }
+    }
+    blocks.append(answer)
+
+    # feedback_divider = {
+    #     "type": "divider"
+    # }
+    # blocks.append(feedback_divider)
+
+    feedback_header = {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "Was this answer helpful?"
+        }
+    }
+    blocks.append(feedback_header)
+
+    feedback = {
+        "type": "actions",
+        "block_id": "feedback",
+        "elements": [
+            {
+                "type": "button",
+                "text": {
+                    "type": "plain_text",
+                    "text": "👍"
+                },
+                "value": "feedback_positive",
+                "action_id": "feedback_positive"
+            },
+            {
+                "type": "button",
+                "text": {
+                    "type": "plain_text",
+                    "text": "👎"
+                },
+                "value": "feedback_positive",
+                "action_id": "feedback_negative"
+            }
+        ]
+    }
+    blocks.append(feedback)
+
+    metadatas = _.get(response, "metadata", [])
+    if len(metadatas):
+        source_divider = {
+            "type": "divider"
+        }
+        blocks.append(source_divider)
+
+        sources = "\n".join(set(map(lambda metadata: convert_metadata(client, metadata), metadatas)))
+        source = {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"Source:\n{sources}"
+                }
+            ]
+        }
+        blocks.append(source)
+
+    return ( text, blocks )
+
+def convert_metadata(client, metadata):
+    if metadata.get("type") == "url":
+        return metadata.get('url')
+
+    if metadata.get("type") == "slack":
+        response = client.chat_getPermalink(token=env.SLACK_USER_TOKEN, channel=metadata.get("channel"), message_ts=metadata.get("ts"))
+        return response["permalink"]
+
+    return False
 
 def get_file_info(client, body):
     file_id = _.get(body, "event.file_id")

@@ -21,9 +21,10 @@ app.get('ask', async (c) => {
 })
 
 app.post('embeddings', async (c) => {
-    const { external_id, text, source } = await c.req.json()
+    const { external_id, text, source, metadata } = await c.req.json()
     if (!external_id || !text) throw new ValidationError
-    const { document, embedding } = await createDocumentAndEmbedding(external_id, text, source || '')
+    console.log('METADATA', metadata)
+    const { document, embedding } = await createDocumentAndEmbedding(external_id, text, source || '', metadata || {})
     return c.json({ document, embedding })
 })
 

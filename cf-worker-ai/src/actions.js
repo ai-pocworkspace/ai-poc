@@ -109,11 +109,19 @@ export async function answerQuestion(question) {
         }
     )
 
-    const metadata = {
-        sources: [...new Set(documents.map(document => {
-            return JSON.parse(document?.metadata)?.source
-        }))]
-    }
+    const metadata = [...new Set(documents.map(document => {
+        let metadata = JSON.parse(document?.metadata)
+
+        if (document.source == 'url') {
+            return { type: 'url', url: metadata.source }
+        }
+
+        if (document.source == 'slack') {
+            return { type: 'slack', channel: metadata.channel, ts: metadata.ts }
+        }
+
+        return false
+    }).filter(Boolean))]
 
     return { answer, metadata, context, vectorMatches }
 }
