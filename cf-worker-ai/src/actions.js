@@ -43,17 +43,22 @@ export async function createDocumentAndEmbedding(external_id, text, source = nul
         throw 'Failed to create document'
     }
 
-    const embedding = await createEmbedding(text)
+    try {
+        const embedding = await createEmbedding(text)
 
-    if (!embedding) {
-        throw 'Failed to generate vector embedding'
+        if (!embedding) {
+            throw 'Failed to generate vector embedding'
+        }
+
+        const ids = await insertVector(document, embedding)
+        await env().DB.prepare(`UPDATE documents SET embedded = 1 WHERE id IN (${ids.join(', ')})`).run()
+
+        return { document, embedding }
+    } catch (e) {
+        // ignore for now ...
+        // await env().DB.prepare(`DELETE FROM documents WHERE id IN (${document.id})`).bind().run()
+        // throw e
     }
-
-    const ids = await insertVector(document, embedding)
-
-    await env().DB.prepare(`UPDATE documents SET embedded = 1 WHERE id IN (${ids.join(', ')})`).run()
-
-    return { document, embedding }
 }
 
 export async function deleteDocumentAndEmbeddingByExternalId(external_id) {
