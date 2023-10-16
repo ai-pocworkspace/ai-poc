@@ -142,12 +142,15 @@ def build_answer(client, question, response):
     return ( text, blocks )
 
 def convert_metadata(client, metadata):
-    if metadata.get("type") == "url":
+    if metadata.get("type") in ["url", "video"]:
         return metadata.get('url')
 
     if metadata.get("type") == "slack":
         response = client.chat_getPermalink(token=env.SLACK_USER_TOKEN, channel=metadata.get("channel"), message_ts=metadata.get("ts"))
         return response["permalink"]
+
+    if "url" in metadata:
+        return metadata.get("url")
 
     return False
 

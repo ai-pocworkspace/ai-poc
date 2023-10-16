@@ -128,6 +128,14 @@ export async function answerQuestion(question) {
             return { type: 'slack', channel: metadata.channel, ts: metadata.ts }
         }
 
+        if (document.source == 'video') {
+            return { type: 'video', url: metadata.url }
+        }
+
+        if (metadata.url) {
+            return { type: 'unknown', url: metadata.url }
+        }
+
         return false
     }).filter(Boolean))]
 
