@@ -11,9 +11,18 @@ binding = "VECTOR_INDEX"
 index_name = "vector-index"
 
 [[d1_databases]]
-binding = "DB" # i.e. available in your Worker on env.DB
+binding = "DB"
 database_name = "database"
 database_id = "19764baa-24dd-4380-b7da-e3c9891dbf92"
+
+[[queues.producers]]
+queue = "embeddings"
+binding = "EMBEDDINGS_QUEUE"
+
+[[queues.consumers]]
+queue = "embeddings"
+max_batch_size = 1
+# max_batch_timeout = 30
 
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Note: Use secrets to store sensitive data.

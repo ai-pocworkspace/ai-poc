@@ -4,10 +4,10 @@ import {
     answerQuestion,
     createDocumentAndEmbedding,
     deleteDocumentAndEmbeddingByExternalId,
-    stuffDocuments
+    queueDocuments
 } from './actions'
 import { urlLoader } from './loaders'
-import { ValidationError, useEnv } from './util'
+import { ValidationError, useEnv, setEnvVar } from './util'
 
 const app = new Hono()
 
@@ -42,15 +42,15 @@ app.get('loader', async (c) => {
 
     switch(type) {
         case 'url':
-            documents = await urlLoader(value);
-            break;
-        default: throw new ValidationError(`type "${type}" not supported`);
+            documents = await urlLoader(value)
+            break
+        default: throw new ValidationError(`type "${type}" not supported`)
     }
 
     return c.json({
         message: documents.length
-            ? await stuffDocuments(documents, 'url') && `${documents.length} documents embedded`
-            : 'No documents were embedded.'
+            ? await queueDocuments(documents, 'url') && `${documents.length} documents queued for embedding`
+            : 'No documents were queued for embedding'
     })
 })
 
@@ -80,5 +80,15 @@ app.onError((e, c) => {
 //
 //     return c.json({ response })
 // })
+
+app.queue = async (batch, env) => {
+    setEnvVar(env)
+
+    for (const message of batch.messages) {
+        const embedding = message.body
+        await createDocumentAndEmbedding(embedding.external_id, embedding.text, embedding.source || '', embedding.metadata || {})
+        message.ack()
+    }
+}
 
 export default app

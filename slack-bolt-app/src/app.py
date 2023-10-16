@@ -22,7 +22,7 @@ def handle_add_website(message, client, say, logger):
     else:
         response = response.json()
         message = response["message"]
-        say(f"Website added to the knowledgebase. {message}")
+        say(f"Website added to the knowledgebase. {message}.")
 
 @app.message("Remove Website:")
 def handle_remove_website(message, say, logger):

@@ -17,18 +17,21 @@ export async function insertVector(document, embedding) {
     return ids
 }
 
-export async function stuffDocuments(documents, source = null) {
-    let ids = []
+export async function queueDocuments(documents, source = null) {
+    const embeddings = documents.map(document => {
+        return {
+            body: {
+                external_id: btoa(document.metadata.source),
+                text: document.pageContent,
+                source: source,
+                metadata: document.metadata
+            },
+            contentType: "json"
+        }
+    })
+    await env().EMBEDDINGS_QUEUE.sendBatch(embeddings)
 
-    for (let document of documents) {
-        const external_id = btoa(document.metadata.source)
-        const text = document.pageContent
-        const metadata = document.metadata
-        const { document: id } = await createDocumentAndEmbedding(external_id, text, source, metadata)
-        ids.push(id)
-    }
-
-    return ids.length > 0
+    return documents.length
 }
 
 export async function createDocumentAndEmbedding(external_id, text, source = null, metadata = {}) {
