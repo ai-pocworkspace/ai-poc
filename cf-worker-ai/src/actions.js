@@ -79,7 +79,7 @@ export async function answerQuestion(question) {
     const values = embedding.data[0]
     const vectorQuery = await env().VECTOR_INDEX.query(values, { topK: 20 })
     const vectorMatches = vectorQuery.matches
-    const SIMILARITY_CUTOFF = 0.75
+    const SIMILARITY_CUTOFF = 0.7
     const vectorIds = vectorMatches
         .filter(vector => vector.score > SIMILARITY_CUTOFF)
         .map(vector => vector.vectorId)

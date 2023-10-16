@@ -46,6 +46,9 @@ def build_answer(client, question, response):
     blocks = []
     text = response["answer"]
 
+    if "We don't seem to have any information about that in our knowledgebase" in text:
+        return (text, [])
+
     question_header = {
         "type": "header",
         "text": {
@@ -81,11 +84,6 @@ def build_answer(client, question, response):
         }
     }
     blocks.append(answer)
-
-    # feedback_divider = {
-    #     "type": "divider"
-    # }
-    # blocks.append(feedback_divider)
 
     feedback_header = {
         "type": "section",
