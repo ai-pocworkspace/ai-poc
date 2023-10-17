@@ -1,4 +1,4 @@
-# AI POC
+# Einstein Knowledge Base
 
 ![alt text](https://github.com/ai-pocworkspace/ai-poc/blob/main/diagram.png?raw=true)
 
