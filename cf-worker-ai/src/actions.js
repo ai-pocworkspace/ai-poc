@@ -1,4 +1,5 @@
 
+import chunk from 'chunk'
 import { Ai } from '@cloudflare/ai'
 import { ResourceNotFoundError, env } from './util'
 
@@ -29,7 +30,11 @@ export async function queueDocuments(documents, source = null) {
             contentType: "json"
         }
     })
-    await env().EMBEDDINGS_QUEUE.sendBatch(embeddings)
+
+    const chunks = chunk(embeddings, 100)
+    for (const chunk of chunks) {
+        await env().EMBEDDINGS_QUEUE.sendBatch(chunk)
+    }
 
     return documents.length
 }
